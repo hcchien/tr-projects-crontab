@@ -19,19 +19,20 @@ $rss->image(
     link => "https://www.twreporter.org/",
 );
 
-my $api = decode_json(get('http://api.twreporter.org/article/?where={"tags":{"$in":["hp-projects","review","feature","photo-reviews","photo-features"]}}&max_results=100&sort=-lastUpdate'));
+my $api = decode_json(get('http://localhost:8080/posts?where={"state":"published"}&max_results=100&sort=-publishDate'));
 for (@{ $api->{_items} }) {
-    $_->{story_link} =~ s/\s//g;
+    # $_->{story_link} =~ s/\s//g;
     $_->{title} =~ s/[\x00-\x19]//g; # strip control characters
     $rss->add_item(
         title => $_->{title},
-        description => $_->{excerpt},
-        permaLink => ($_->{story_link} or next),
-        link => ($_->{story_link} or next),
+        description => $_->{og_description} || $_->{content}->{brief},
+        permaLink => ($_->{slug} or next),
+        link => ($_->{slug} or next),
         dc => {
-            creator => ($_->{byline} or next),
+            creator => ($_->{byline} or "報導者"),
         },
-        pubDate => strftime("%a, %d %b %Y %H:%M:%S %z", localtime($_->{lastPublish})),
+        pubDate => strftime("%a, %d %b %Y %H:%M:%S %z", localtime($_->{publishDate})),
     );
+    print "foo";
 }
 $rss->save("/tmp/twreporters/articles/rss2.xml");
